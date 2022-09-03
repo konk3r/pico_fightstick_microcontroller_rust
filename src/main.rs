@@ -29,7 +29,7 @@ use usb_device::{class_prelude::*, prelude::*};
 
 // USB Human Interface Device (HID) Class support
 use usbd_hid::descriptor::generator_prelude::*;
-use usbd_hid::descriptor::MouseReport;
+use usbd_hid::descriptor::KeyboardReport;
 use usbd_hid::hid_class::HIDClass;
 
 /// The USB Device Driver (shared with the interrupt).
@@ -94,7 +94,7 @@ fn main() -> ! {
     let bus_ref = unsafe { USB_BUS.as_ref().unwrap() };
 
     // Set up the USB HID Class Device driver, providing Mouse Reports
-    let usb_hid = HIDClass::new(bus_ref, MouseReport::desc(), 60);
+    let usb_hid = HIDClass::new(bus_ref, KeyboardReport::desc(), 60);
     unsafe {
         // Note (safety): This is safe as interrupts haven't been started yet.
         USB_HID = Some(usb_hid);
@@ -103,7 +103,7 @@ fn main() -> ! {
     // Create a USB device with a fake VID and PID
     let usb_dev = UsbDeviceBuilder::new(bus_ref, UsbVidPid(0x16c0, 0x27da))
         .manufacturer("Fake company")
-        .product("Twitchy Mousey")
+        .product("Gab-rpi-cade")
         .serial_number("TEST")
         .device_class(0)
         .build();
@@ -123,12 +123,11 @@ fn main() -> ! {
     loop {
         let is_button_pressed = input_pin.is_low().unwrap();
         if is_button_pressed {
-            let rep_up = MouseReport {
-                x: 0,
-                y: 4,
-                buttons: 0,
-                wheel: 0,
-                pan: 0,
+            let rep_up = KeyboardReport {
+                modifier: 0,
+                leds: 0,
+                reserved: 0,
+                keycodes: [0x2c; 6],
             };
             push_mouse_movement(rep_up).ok().unwrap_or(0);
             output_pin.set_high().unwrap();
@@ -141,7 +140,7 @@ fn main() -> ! {
 /// Submit a new mouse movement report to the USB stack.
 ///
 /// We do this with interrupts disabled, to avoid a race hazard with the USB IRQ.
-fn push_mouse_movement(report: MouseReport) -> Result<usize, usb_device::UsbError> {
+fn push_mouse_movement(report: KeyboardReport) -> Result<usize, usb_device::UsbError> {
     critical_section::with(|_| unsafe {
         // Now interrupts are disabled, grab the global variable and, if
         // available, send it a HID report
