@@ -120,20 +120,37 @@ fn main() -> ! {
     let input_pin = pins.gpio2.into_pull_up_input();
     let mut output_pin = pins.gpio0.into_push_pull_output();
 
+    let mut keycodes_setup = [0; 6];
+    keycodes_setup[2] = 0x04;
+    let keycodes = keycodes_setup;
+    let no_keycodes = [0; 6];
+
+    let mut was_button_pressed = false;
+
     loop {
         let is_button_pressed = input_pin.is_low().unwrap();
+        if is_button_pressed == was_button_pressed { continue }
+
         if is_button_pressed {
             let rep_up = KeyboardReport {
                 modifier: 0,
                 leds: 0,
                 reserved: 0,
-                keycodes: [0x2c; 6],
+                keycodes,
             };
             push_mouse_movement(rep_up).ok().unwrap_or(0);
             output_pin.set_high().unwrap();
         } else {
+            let rep_up = KeyboardReport {
+                modifier: 0,
+                leds: 0,
+                reserved: 0,
+                keycodes: no_keycodes,
+            };
+            push_mouse_movement(rep_up).ok().unwrap_or(0);
             output_pin.set_low().unwrap();
         }
+        was_button_pressed = is_button_pressed;
     }
 }
 
