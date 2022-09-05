@@ -147,7 +147,7 @@ fn main() -> ! {
                 reserved: 0,
                 keycodes: no_keycodes,
             };
-            push_mouse_movement(rep_up).ok().unwrap_or(0);
+            push_keyboard_report(rep_up).ok().unwrap_or(0);
             output_pin.set_low().unwrap();
         }
         was_button_pressed = is_button_pressed;
@@ -157,7 +157,7 @@ fn main() -> ! {
 /// Submit a new mouse movement report to the USB stack.
 ///
 /// We do this with interrupts disabled, to avoid a race hazard with the USB IRQ.
-fn push_mouse_movement(report: KeyboardReport) -> Result<usize, usb_device::UsbError> {
+fn push_keyboard_report(report: KeyboardReport) -> Result<usize, usb_device::UsbError> {
     critical_section::with(|_| unsafe {
         // Now interrupts are disabled, grab the global variable and, if
         // available, send it a HID report
